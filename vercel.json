@@ -5,9 +5,9 @@
   "framework": "nextjs",
   "regions": ["bom1"],
   "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": "@billy_supabase_url",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@billy_supabase_anon_key",
-    "SUPABASE_SERVICE_ROLE_KEY": "@billy_supabase_service_role_key"
+    "NEXT_PUBLIC_SUPABASE_URL": "https://iaaeqiqylpzkbrgjpuyk.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhYWVxaXF5bHB6a2JyZ2pwdXlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NTY4MjUsImV4cCI6MjA5NDEzMjgyNX0.Rzs3W-HcWaBJtEaktBoCUE9QAdPsZXWNoOfZPYg1U5A",
+    "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhYWVxaXF5bHB6a2JyZ2pwdXlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODU1NjgyNSwiZXhwIjoyMDk0MTMyODI1fQ.MS8179V36t-p_CjYPMg6iozr8feyUc38-DbDKNRXbFU"
   },
   "headers": [
     {
