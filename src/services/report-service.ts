@@ -166,6 +166,9 @@ export async function getPaymentBreakdown(
     map.set(row.payment_method, existing);
   }
 
+  return Array.from(map.entries()).map(([method, s]) => ({ method, ...s }));
+}
+
 // ---------------------------------------------------------------------------
 // Top selling items
 // ---------------------------------------------------------------------------
