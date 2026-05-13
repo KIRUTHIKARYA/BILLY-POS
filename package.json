@@ -6,12 +6,20 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "smoke": "node smoke-test.mjs http://localhost:3000",
+    "smoke:prod": "node smoke-test.mjs https://billy-pos.vercel.app"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.105.4",
+    "bcryptjs": "^3.0.3",
+    "html5-qrcode": "^2.3.8",
+    "lucide-react": "^1.14.0",
     "next": "16.2.6",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "recharts": "^3.8.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

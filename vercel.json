@@ -1,0 +1,22 @@
+{
+  "buildCommand": "next build",
+  "outputDirectory": ".next",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "regions": ["bom1"],
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": "@billy_supabase_url",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@billy_supabase_anon_key",
+    "SUPABASE_SERVICE_ROLE_KEY": "@billy_supabase_service_role_key"
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" }
+      ]
+    }
+  ]
+}

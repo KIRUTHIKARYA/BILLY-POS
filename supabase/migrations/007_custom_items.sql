@@ -1,0 +1,1 @@
+ALTER TABLE bill_items ALTER COLUMN item_id DROP NOT NULL;
