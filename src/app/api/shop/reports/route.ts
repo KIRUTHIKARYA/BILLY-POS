@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { enforceSubscription } from "@/services/subscription-service";
-import { getDailyReport, getPaymentBreakdown, getReportSummary } from "@/services/report-service";
+import { getDailyReport, getPaymentBreakdown, getReportSummary, getTopItems, getHourlySales } from "@/services/report-service";
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -17,11 +17,14 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const days = Math.min(parseInt(searchParams.get("days") ?? "30", 10), 90);
 
-  const [summary, daily, payments] = await Promise.all([
+  const [summary, daily, payments, topItems, hourly] = await Promise.all([
     getReportSummary(session.shopId),
     getDailyReport(session.shopId, days),
     getPaymentBreakdown(session.shopId, days),
+    getTopItems(session.shopId, days),
+    getHourlySales(session.shopId, days),
   ]);
 
-  return NextResponse.json({ summary, daily, payments });
+  return NextResponse.json({ summary, daily, payments, topItems, hourly });
 }
+

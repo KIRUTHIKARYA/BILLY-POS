@@ -166,5 +166,84 @@ export async function getPaymentBreakdown(
     map.set(row.payment_method, existing);
   }
 
-  return Array.from(map.entries()).map(([method, s]) => ({ method, ...s }));
+// ---------------------------------------------------------------------------
+// Top selling items
+// ---------------------------------------------------------------------------
+
+export type TopItem = {
+  item_name: string;
+  total_qty: number;
+  total_revenue: number;
+};
+
+export async function getTopItems(
+  shopId: string,
+  days = 30,
+  limit = 8,
+): Promise<TopItem[]> {
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+
+  const { data } = await supabaseAdmin
+    .from("bill_items")
+    .select("item_name, quantity, line_total, bills!inner(shop_id, status, created_at)")
+    .eq("bills.shop_id", shopId)
+    .eq("bills.status", "paid")
+    .gte("bills.created_at", since.toISOString());
+
+  if (!data) return [];
+
+  const map = new Map<string, { total_qty: number; total_revenue: number }>();
+  for (const row of data as Array<{ item_name: string; quantity: number; line_total: number }>) {
+    const existing = map.get(row.item_name) ?? { total_qty: 0, total_revenue: 0 };
+    existing.total_qty += row.quantity;
+    existing.total_revenue = Math.round((existing.total_revenue + Number(row.line_total)) * 100) / 100;
+    map.set(row.item_name, existing);
+  }
+
+  return Array.from(map.entries())
+    .map(([item_name, s]) => ({ item_name, ...s }))
+    .sort((a, b) => b.total_qty - a.total_qty)
+    .slice(0, limit);
+}
+
+// ---------------------------------------------------------------------------
+// Hourly sales breakdown
+// ---------------------------------------------------------------------------
+
+export type HourlyStat = {
+  hour: number;  // 0-23
+  bill_count: number;
+  total: number;
+};
+
+export async function getHourlySales(
+  shopId: string,
+  days = 30,
+): Promise<HourlyStat[]> {
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+
+  const { data } = await supabaseAdmin
+    .from("bills")
+    .select("created_at, total")
+    .eq("shop_id", shopId)
+    .eq("status", "paid")
+    .gte("created_at", since.toISOString());
+
+  if (!data) return [];
+
+  const hourMap = new Map<number, { bill_count: number; total: number }>();
+  for (const row of data as Array<{ created_at: string; total: number }>) {
+    const hour = new Date(row.created_at).getHours();
+    const existing = hourMap.get(hour) ?? { bill_count: 0, total: 0 };
+    existing.bill_count++;
+    existing.total = Math.round((existing.total + Number(row.total)) * 100) / 100;
+    hourMap.set(hour, existing);
+  }
+
+  return Array.from({ length: 24 }, (_, h) => ({
+    hour: h,
+    ...(hourMap.get(h) ?? { bill_count: 0, total: 0 }),
+  }));
 }
