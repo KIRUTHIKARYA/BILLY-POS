@@ -77,6 +77,8 @@ export function BillingScreen() {
   const barcodeRef = useRef<HTMLInputElement>(null);
   const [barcodeInput, setBarcodeInput] = useState("");
   const [showCamera, setShowCamera] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [pendingSync, setPendingSync] = useState(0);
   const { toast } = useToast();
 
   // Active tab
@@ -90,22 +92,89 @@ export function BillingScreen() {
   }, [tabs]);
 
   // ---------------------------------------------------------------------------
+  // Sync logic
+  // ---------------------------------------------------------------------------
+  const syncOfflineBills = useCallback(async () => {
+    try {
+      const queue = JSON.parse(localStorage.getItem("billy_offline_bills_v1") || "[]");
+      if (queue.length === 0) { setPendingSync(0); return; }
+      
+      const newQueue = [...queue];
+      for (const bill of queue) {
+        const res = await fetch("/api/shop/bills", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(bill),
+        });
+        if (res.ok) {
+          newQueue.shift(); // Remove the synced bill
+        } else {
+          break; // Stop if server errors
+        }
+      }
+      localStorage.setItem("billy_offline_bills_v1", JSON.stringify(newQueue));
+      setPendingSync(newQueue.length);
+      if (newQueue.length === 0 && queue.length > 0) {
+        toast("All offline bills synced to server!", "success");
+      }
+    } catch {}
+  }, [toast]);
+
+  useEffect(() => {
+    if (typeof navigator !== "undefined") {
+      setIsOnline(navigator.onLine);
+      try {
+        const queue = JSON.parse(localStorage.getItem("billy_offline_bills_v1") || "[]");
+        setPendingSync(queue.length);
+      } catch {}
+    }
+
+    const handleOnline = () => { setIsOnline(true); void syncOfflineBills(); };
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    
+    if (typeof navigator !== "undefined" && navigator.onLine) {
+      void syncOfflineBills();
+    }
+    
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [syncOfflineBills]);
+
+  // ---------------------------------------------------------------------------
   // Load items
   // ---------------------------------------------------------------------------
   const loadItems = useCallback(async () => {
     try {
+      if (!navigator.onLine) throw new Error("Offline");
       const res = await fetch("/api/shop/items");
-      if (!res.ok) return;
+      if (!res.ok) throw new Error("Failed to fetch");
       const data = (await res.json()) as { items: Item[] };
       setItems(data.items);
       const cats = ["All", ...Array.from(new Set(data.items.map((i) => i.category)))];
       setCategories(cats);
-    } catch {}
+      localStorage.setItem("billy_offline_items_v1", JSON.stringify({ items: data.items, cats }));
+    } catch {
+      // Offline fallback
+      try {
+        const cached = localStorage.getItem("billy_offline_items_v1");
+        if (cached) {
+          const { items, cats } = JSON.parse(cached);
+          setItems(items);
+          setCategories(cats);
+        }
+      } catch {}
+    }
   }, []);
 
   // Load held bills
   const loadHeld = useCallback(async () => {
     try {
+      if (!navigator.onLine) return;
       const res = await fetch("/api/shop/bills/held");
       if (!res.ok) return;
       const data = (await res.json()) as { held: Array<{ id: string; bill_number: string; items: Array<{ item_id: string; item_name: string; unit_price: number; quantity: number; line_total: number }>; total: number }> };
@@ -221,6 +290,7 @@ export function BillingScreen() {
   // Hold / Resume
   // ---------------------------------------------------------------------------
   async function holdBill() {
+    if (!isOnline) { toast("Cannot hold bills in offline mode.", "error"); return; }
     if (!active || active.items.length === 0) { toast("Cart is empty.", "error"); return; }
     try {
       const res = await fetch("/api/shop/bills/held", {
@@ -240,6 +310,7 @@ export function BillingScreen() {
   }
 
   async function resumeBill(heldId: string) {
+    if (!isOnline) { toast("Cannot resume bills in offline mode.", "error"); return; }
     try {
       const res = await fetch(`/api/shop/bills/held/${heldId}`, { method: "POST" });
       if (!res.ok) return;
@@ -256,6 +327,7 @@ export function BillingScreen() {
   }
 
   async function discardHeld(heldId: string) {
+    if (!isOnline) { toast("Cannot discard bills in offline mode.", "error"); return; }
     try {
       await fetch(`/api/shop/bills/held/${heldId}`, { method: "DELETE" });
       await loadHeld(); toast("Held bill discarded.");
@@ -269,6 +341,34 @@ export function BillingScreen() {
     if (!active || active.items.length === 0 || payingRef.current) return;
     payingRef.current = true;
     setPaying(true);
+
+    const { total } = computeTotals(active.items, active.discount, active.extra, active.gstRate);
+
+    if (!isOnline) {
+      const offlineBill = {
+        offlineId: `OFF-${Date.now()}`,
+        items: active.items.map((i) => ({ item_id: i.itemId, item_name: i.name, unit_price: i.unitPrice, quantity: i.quantity })),
+        customer_name: active.customerName.trim() || undefined,
+        discount: active.discount, gst_rate: active.gstRate, extra_charges: active.extra,
+        payment_method: active.paymentMethod,
+        payment_breakdown: active.paymentMethod === "split" ? active.splitBreakdown : undefined,
+      };
+      try {
+        const queue = JSON.parse(localStorage.getItem("billy_offline_bills_v1") || "[]");
+        queue.push(offlineBill);
+        localStorage.setItem("billy_offline_bills_v1", JSON.stringify(queue));
+        setPendingSync(queue.length);
+        toast(`Offline Bill Saved! Will sync when back online.`, "success");
+        closeTab(activeId);
+      } catch {
+        toast("Failed to save offline bill.", "error");
+      } finally {
+        setPaying(false);
+        payingRef.current = false;
+      }
+      return;
+    }
+
     try {
       const res = await fetch("/api/shop/bills", {
         method: "POST",
@@ -436,6 +536,16 @@ export function BillingScreen() {
             >
               ⚡ Rush
             </button>
+            {!isOnline && (
+              <div className="flex items-center gap-1.5 rounded-lg border-2 border-rose-500 bg-rose-50 text-rose-700 px-3 py-1.5 text-xs font-bold">
+                ⚠️ Offline
+              </div>
+            )}
+            {isOnline && pendingSync > 0 && (
+              <div className="flex items-center gap-1.5 rounded-lg border-2 border-amber-500 bg-amber-50 text-amber-700 px-3 py-1.5 text-xs font-bold">
+                🔄 Syncing ({pendingSync})...
+              </div>
+            )}
           </div>
         </div>
 
