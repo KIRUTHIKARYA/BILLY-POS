@@ -10,7 +10,7 @@ export const fetchCache = "force-no-store";
 /** POST to resume, DELETE to discard */
 export async function POST(request: Request, context: RouteContext) {
   const session = await getSession();
-  if (!session || session.role !== "shop" || !session.shopId) {
+  if (!session || !["shop", "staff"].includes(session.role) || !session.shopId) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
@@ -22,7 +22,7 @@ export async function POST(request: Request, context: RouteContext) {
 
 export async function DELETE(request: Request, context: RouteContext) {
   const session = await getSession();
-  if (!session || session.role !== "shop" || !session.shopId) {
+  if (!session || !["shop", "staff"].includes(session.role) || !session.shopId) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 

@@ -6,7 +6,7 @@ type RouteContext = { params: Promise<{ billId: string }> };
 
 export async function GET(request: Request, context: RouteContext) {
   const session = await getSession();
-  if (!session || session.role !== "shop" || !session.shopId) {
+  if (!session || !["shop", "staff"].includes(session.role) || !session.shopId) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
@@ -18,7 +18,7 @@ export async function GET(request: Request, context: RouteContext) {
 
 export async function PATCH(request: Request, context: RouteContext) {
   const session = await getSession();
-  if (!session || session.role !== "shop" || !session.shopId) {
+  if (!session || !["shop", "staff"].includes(session.role) || !session.shopId) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 

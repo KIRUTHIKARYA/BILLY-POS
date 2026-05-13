@@ -5,7 +5,7 @@ import { enforceSubscription } from "@/services/subscription-service";
 
 export async function GET() {
   const session = await getSession();
-  if (!session || session.role !== "shop" || !session.shopId) {
+  if (!session || !["shop", "staff"].includes(session.role) || !session.shopId) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 

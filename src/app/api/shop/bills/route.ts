@@ -9,7 +9,7 @@ export const fetchCache = "force-no-store";
 
 export async function GET() {
   const session = await getSession();
-  if (!session || session.role !== "shop" || !session.shopId) {
+  if (!session || !["shop", "staff"].includes(session.role) || !session.shopId) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
@@ -24,7 +24,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const session = await getSession();
-  if (!session || session.role !== "shop" || !session.shopId) {
+  if (!session || !["shop", "staff"].includes(session.role) || !session.shopId) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 

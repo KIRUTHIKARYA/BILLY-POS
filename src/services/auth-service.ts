@@ -22,7 +22,7 @@ type UserRow = {
   shop_id: string | null;
   username: string;
   password_hash: string;
-  role: "admin" | "shop";
+  role: "admin" | "shop" | "staff";
   is_active: boolean;
 };
 
@@ -101,7 +101,7 @@ export async function authenticateUser(input: LoginInput): Promise<AuthResult> {
     };
   }
 
-  if (data.role === "shop") {
+  if (data.role === "shop" || data.role === "staff") {
     if (!data.shop_id) {
       return { ok: false, message: "Shop account is not mapped correctly." };
     }
