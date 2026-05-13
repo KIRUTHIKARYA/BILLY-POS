@@ -565,6 +565,7 @@ export function BillingScreen() {
         </div>
       </div>
     </div>
+  </div>
 
       {/* ── RIGHT PANEL: Cart ─────────────────────────────────────────────── */}
       <div className="w-full lg:w-80 flex flex-col gap-3 lg:min-h-0">
